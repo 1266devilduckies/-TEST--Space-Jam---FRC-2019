@@ -89,12 +89,20 @@ public class Robot extends TimedRobot {
       m_maxExtraSpeed = SmartDashboard.getNumber("Maximum Motor Speed", 1);
     }
 
+    double targetOutput = 0;
+
     if(m_stick.getRawButton(4)){
-      m_extraMotor.set(SmartDashboard.getNumber("Maximum Motor Speed", 0.5));
+      targetOutput = m_maxExtraSpeed;
     }else if(m_stick.getRawButton(2)){
-      m_extraMotor.set(SmartDashboard.getNumber("Maximum Motor Speed", 0.5)*-1);
+      targetOutput = m_maxExtraSpeed*-1;
     }else{
-      m_extraMotor.set(0);
+      targetOutput = 0;
+    }
+
+    if (m_extraMotor.getSpeed()>targetOutput){
+      m_extraMotor.setSpeed(m_extraMotor.getSpeed() - 0.1);
+    }else if (m_extraMotor.getSpeed()<targetOutput){
+      m_extraMotor.setSpeed(m_extraMotor.getSpeed() + 0.1);
     }
 
     SmartDashboard.putNumber("Extra Motor Speed", m_extraMotor.getSpeed());
