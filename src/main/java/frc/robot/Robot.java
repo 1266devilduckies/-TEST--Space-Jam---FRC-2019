@@ -9,6 +9,7 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.smartdashboard.*;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -36,6 +37,7 @@ public class Robot extends TimedRobot {
 
   UsbCamera visionCam = new UsbCamera("VisionProcCam", 0);
   MjpegServer camServer = new MjpegServer("VisionCamServer", 1181);
+  SerialPort usbSerial = null;
 
   /**
    * This function is run when the robot is first started up and should be
@@ -45,6 +47,8 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     visionCam.setVideoMode(VideoMode.PixelFormat.kYUYV, 320, 240, 60);
     camServer.setSource(visionCam);
+    m_stick.setXChannel(2);
+    usbSerial = new SerialPort(115200, SerialPort.Port.kUSB);
   }
 
   /**
@@ -76,7 +80,6 @@ public class Robot extends TimedRobot {
   public void teleopInit() {
     SmartDashboard.putNumber("Maximum Drive Speed", 1);
     SmartDashboard.putNumber("Maximum Motor Speed", 1);
-    m_stick.setXChannel(2);
   }
 
   /**
@@ -84,6 +87,8 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+
+    System.out.println(usbSerial.readString());
 
     if(SmartDashboard.getNumber("Maximum Drive Speed", 1)<=1 && SmartDashboard.getNumber("motorMaxSpeed", 1)>=0){
       m_maxSpeed = SmartDashboard.getNumber("Maximum Drive Speed", 1);
