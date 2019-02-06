@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import edu.wpi.cscore.*;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -33,12 +34,17 @@ public class Robot extends TimedRobot {
   private double m_maxSpeed = 1;
   private double m_maxExtraSpeed = 1;
 
+  UsbCamera visionCam = new UsbCamera("VisionProcCam", 0);
+  MjpegServer camServer = new MjpegServer("VisionCamServer", 1181);
+
   /**
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
    */
   @Override
   public void robotInit() {
+    visionCam.setVideoMode(VideoMode.PixelFormat.kYUYV, 320, 240, 60);
+    camServer.setSource(visionCam);
   }
 
   /**
