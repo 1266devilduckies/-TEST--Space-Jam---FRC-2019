@@ -8,6 +8,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.smartdashboard.*;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.Talon;
@@ -35,8 +36,6 @@ public class Robot extends TimedRobot {
   private double m_maxSpeed = 1;
   private double m_maxExtraSpeed = 1;
 
-  UsbCamera visionCam = new UsbCamera("VisionProcCam", 0);
-  MjpegServer camServer = new MjpegServer("VisionCamServer", 1181);
   SerialPort usbSerial = null;
 
   /**
@@ -45,8 +44,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
-    visionCam.setVideoMode(VideoMode.PixelFormat.kYUYV, 320, 240, 60);
-    camServer.setSource(visionCam);
+    //CameraServer.getInstance().startAutomaticCapture();
     m_stick.setXChannel(2);
     usbSerial = new SerialPort(115200, SerialPort.Port.kUSB);
   }
@@ -80,6 +78,7 @@ public class Robot extends TimedRobot {
   public void teleopInit() {
     SmartDashboard.putNumber("Maximum Drive Speed", 1);
     SmartDashboard.putNumber("Maximum Motor Speed", 1);
+    usbSerial.writeString("ping");
   }
 
   /**
@@ -87,7 +86,9 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
-
+    /* if(usbSerial.getBytesReceived()>0){
+      
+    } */
     System.out.println(usbSerial.readString());
 
     if(SmartDashboard.getNumber("Maximum Drive Speed", 1)<=1 && SmartDashboard.getNumber("motorMaxSpeed", 1)>=0){
