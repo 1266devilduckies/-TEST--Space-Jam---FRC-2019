@@ -7,6 +7,8 @@
 
 package frc.robot;
 
+import com.github.cliftonlabs.json_simple.*;
+
 import edu.wpi.first.wpilibj.smartdashboard.*;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.Joystick;
@@ -15,6 +17,9 @@ import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+
+import java.math.BigDecimal;
+
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import edu.wpi.cscore.*;
 
@@ -46,7 +51,14 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     //CameraServer.getInstance().startAutomaticCapture();
     m_stick.setXChannel(2);
-    usbSerial = new SerialPort(115200, SerialPort.Port.kUSB);
+    try {
+			System.out.print("Creating JeVois SerialPort...");
+			usbSerial = new SerialPort(115200,SerialPort.Port.kUSB);
+			System.out.println("SUCCESS!!");
+		} catch (Exception e) {
+			System.out.println("FAILED!!  Fix and then restart code...");
+                        e.printStackTrace();
+		}
   }
 
   /**
@@ -76,9 +88,10 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopInit() {
-    SmartDashboard.putNumber("Maximum Drive Speed", 1);
-    SmartDashboard.putNumber("Maximum Motor Speed", 1);
-    usbSerial.writeString("ping");
+    if(usbSerial != null){
+      SmartDashboard.putNumber("Maximum Drive Speed", 1);
+      SmartDashboard.putNumber("Maximum Motor Speed", 1);
+    }
   }
 
   /**
@@ -86,10 +99,15 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
-    /* if(usbSerial.getBytesReceived()>0){
-      
-    } */
-    System.out.println(usbSerial.readString());
+    if(usbSerial != null){
+
+      if(usbSerial.getBytesReceived()>0){
+        JsonArray jevoisArray = Jsoner.deserialize(usbSerial.readString(), new JsonArray());
+        if(jevoisArray.isEmpty()==false){
+        BigDecimal x = (BigDecimal)jevoisArray.getMap(0).get("x");
+        SmartDashboard.putNumber("x", x.doubleValue());
+        }
+      }
 
     if(SmartDashboard.getNumber("Maximum Drive Speed", 1)<=1 && SmartDashboard.getNumber("motorMaxSpeed", 1)>=0){
       m_maxSpeed = SmartDashboard.getNumber("Maximum Drive Speed", 1);
@@ -121,6 +139,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Right Motor Speed", m_rightMotor.getSpeed());
     SmartDashboard.putNumber("Left Motor Speed", m_leftMotor.getSpeed());
   }
+}
 
   /**
    * This function is called periodically during test mode.
