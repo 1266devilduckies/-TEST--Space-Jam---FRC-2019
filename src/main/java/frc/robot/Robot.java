@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 
 import java.math.BigDecimal;
 
@@ -40,6 +41,12 @@ public class Robot extends TimedRobot {
   private final Timer m_timer = new Timer();
   private double m_maxSpeed = 1;
   private double m_maxExtraSpeed = 1;
+
+  private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
+
+  private int turnCount = 0;
+  private double kP = 0;
+  private double kI = 0;
 
   SerialPort usbSerial = null;
 
