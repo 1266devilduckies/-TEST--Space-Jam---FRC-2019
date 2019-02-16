@@ -117,7 +117,46 @@ public class Robot extends TimedRobot {
         JsonArray jevoisArray = Jsoner.deserialize(usbSerial.readString(), new JsonArray());
         if(jevoisArray.isEmpty()==false){
           double angleError = jevoisArray.getDouble(0);
-          
+          gyro = m_gyro.getAngle() - (360*turnCount);
+
+          if(gyro>180){
+            turnCount++;
+          }else if (gyro<=-180){
+            turnCount--;
+          }
+
+          gyro = m_gyro.getAngle() - (360*turnCount);
+
+          if (Math.abs( m_stick.getX() ) > 0.1 || Math.abs( m_stick.getY() ) > 0.1){
+
+            error = m_stick.getDirectionDegrees() - (gyro);
+
+            if(error > 180) {
+              error-=360;
+            }else if (error<-180){
+              error+=360;
+            }
+            integral += (error*.02);
+          }
+
+          if(error > -1000){
+            turn_power = (kP * error) + (kI*integral);
+          }
+
+          if(turn_power > m_maxSpeed){
+            turn_power = m_maxSpeed;
+          }else if (turn_power < m_maxSpeed*-1){
+            turn_power = m_maxSpeed*-1;
+          }
+
+          SmartDashboard.putNumber("Stick Angle", m_stick.getDirectionDegrees());
+          SmartDashboard.putNumber("Gyro Angle", gyro);
+          SmartDashboard.putBoolean("Gyro Connected", m_gyro.isConnected());
+          SmartDashboard.putNumber("Error", error);
+          SmartDashboard.putNumber("Turn Power", turn_power);
+
+          //m_robotDrive.arcadeDrive(0, 0);
+          m_robotDrive.arcadeDrive(m_stick.getZ()*m_maxSpeed*-1,turn_power,false);
         }
       }
 
