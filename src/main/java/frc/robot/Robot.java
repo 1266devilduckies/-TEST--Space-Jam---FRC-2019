@@ -104,8 +104,8 @@ public class Robot extends TimedRobot {
       if(usbSerial.getBytesReceived()>0){
         JsonArray jevoisArray = Jsoner.deserialize(usbSerial.readString(), new JsonArray());
         if(jevoisArray.isEmpty()==false){
-        BigDecimal x = (BigDecimal)jevoisArray.getMap(0).get("x");
-        SmartDashboard.putNumber("x", x.doubleValue());
+          double angleError = jevoisArray.getDouble(0);
+          
         }
       }
 
