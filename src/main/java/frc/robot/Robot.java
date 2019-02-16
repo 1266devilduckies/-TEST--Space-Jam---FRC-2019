@@ -41,10 +41,12 @@ public class Robot extends TimedRobot {
   private final Timer m_timer = new Timer();
   private double m_maxSpeed = 1;
   private double m_maxExtraSpeed = 1;
+  private boolean visionToggle = false;
 
   private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
 
   private int turnCount = 0;
+  private double angleError = 0;
   private double kP = 0;
   private double kI = 0;
 
@@ -112,7 +114,7 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
 
     double gyro = 0;
-    double error = -1000;
+    double error = 0;
     double integral = 0;
     double turn_power = 0;
     kP = SmartDashboard.getNumber("kP", 0);
@@ -123,59 +125,62 @@ public class Robot extends TimedRobot {
     }
 
     if(usbSerial != null){
-
-      if(usbSerial.getBytesReceived()>0){
+      if(m_stick.getRawButtonPressed(6)==true){
+        visionToggle = !visionToggle;
+      }
+      if(usbSerial.getBytesReceived()>0 && visionToggle == true){
         JsonArray jevoisArray = Jsoner.deserialize(usbSerial.readString(), new JsonArray());
         if(jevoisArray.isEmpty()==false){
-          double angleError = jevoisArray.getDouble(0);
-          gyro = m_gyro.getAngle() - (360*turnCount);
-
-          if(gyro>180){
+          angleError = jevoisArray.getDouble(0);
+          gyro = m_gyro.getAngle(); //- (360*turnCount);
+        }
+          /* if(gyro>180){
             turnCount++;
           }else if (gyro<=-180){
             turnCount--;
-          }
+          } */
 
-          gyro = m_gyro.getAngle() - (360*turnCount);
+          //gyro = m_gyro.getAngle() - (360*turnCount);
 
-          if (Math.abs( m_stick.getX() ) > 0.1 || Math.abs( m_stick.getY() ) > 0.1){
+          if (true/* Math.abs( m_stick.getX() ) > 0.1 || Math.abs( m_stick.getY() ) > 0.1 */){
 
-            error = m_stick.getDirectionDegrees() - (gyro);
+            error = angleError;
 
-            if(error > 180) {
+            /* if(error > 180) {
               error-=360;
             }else if (error<-180){
               error+=360;
-            }
+            } */
             integral += (error*.02);
           }
 
-          if(error > -1000){
+          if(error != 0){
             turn_power = (kP * error) + (kI*integral);
           }
-
+//
           if(turn_power > m_maxSpeed){
             turn_power = m_maxSpeed;
           }else if (turn_power < m_maxSpeed*-1){
             turn_power = m_maxSpeed*-1;
           }
 
-          SmartDashboard.putNumber("Stick Angle", m_stick.getDirectionDegrees());
+          SmartDashboard.putNumber("Angle Error", angleError);
           SmartDashboard.putNumber("Gyro Angle", gyro);
           SmartDashboard.putBoolean("Gyro Connected", m_gyro.isConnected());
           SmartDashboard.putNumber("Error", error);
           SmartDashboard.putNumber("Turn Power", turn_power);
 
           //m_robotDrive.arcadeDrive(0, 0);
-          m_robotDrive.arcadeDrive(m_stick.getZ()*m_maxSpeed*-1,turn_power,false);
-        }
+          m_robotDrive.arcadeDrive(m_stick.getY()*m_maxSpeed*-1,turn_power,false);
+      }else{
+        m_robotDrive.arcadeDrive(m_stick.getY()*m_maxSpeed*-1, m_stick.getX()*m_maxSpeed);
       }
 
     if(SmartDashboard.getNumber("Maximum Drive Speed", 1)<=1 && SmartDashboard.getNumber("motorMaxSpeed", 1)>=0){
       m_maxSpeed = SmartDashboard.getNumber("Maximum Drive Speed", 1);
     }
 
-    m_robotDrive.arcadeDrive(m_stick.getY()*m_maxSpeed*-1, m_stick.getX()*m_maxSpeed);
+    //m_robotDrive.arcadeDrive(m_stick.getY()*m_maxSpeed*-1, m_stick.getX()*m_maxSpeed);
 
     if(SmartDashboard.getNumber("Maximum Motor Speed", 1)<=1 && SmartDashboard.getNumber("motorMaxSpeed", 1)>=-1){
       m_maxExtraSpeed = SmartDashboard.getNumber("Maximum Motor Speed", 1);
