@@ -99,6 +99,18 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+
+    double gyro = 0;
+    double error = -1000;
+    double integral = 0;
+    double turn_power = 0;
+    kP = SmartDashboard.getNumber("kP", 0);
+    kI = SmartDashboard.getNumber("kI", 0);
+
+    if(m_stick.getRawButtonPressed(13)){
+      m_gyro.reset();
+    }
+
     if(usbSerial != null){
 
       if(usbSerial.getBytesReceived()>0){
