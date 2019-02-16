@@ -51,6 +51,13 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     //CameraServer.getInstance().startAutomaticCapture();
     m_stick.setXChannel(2);
+    SmartDashboard.putNumber("Maximum Drive Speed", 1);
+    SmartDashboard.putNumber("Maximum Motor Speed", 1);
+    SmartDashboard.putNumber("kP", 0);
+    SmartDashboard.putNumber("kI", 0);
+    m_gyro.reset();
+    m_gyro.calibrate();
+    
     try {
 			System.out.print("Creating JeVois SerialPort...");
 			usbSerial = new SerialPort(115200,SerialPort.Port.kUSB);
@@ -88,10 +95,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopInit() {
-    if(usbSerial != null){
-      SmartDashboard.putNumber("Maximum Drive Speed", 1);
-      SmartDashboard.putNumber("Maximum Motor Speed", 1);
-    }
+
   }
 
   /**
