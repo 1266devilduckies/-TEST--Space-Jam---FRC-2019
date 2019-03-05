@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import edu.wpi.first.wpilibj.DigitalInput;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -29,6 +30,7 @@ public class Robot extends TimedRobot {
   private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftMotor, m_rightMotor);
   private final Joystick m_stick = new Joystick(0);
   private final Joystick m_stick2 = new Joystick(1);
+  private final DigitalInput m_ballSensor = new DigitalInput(0);
   private final Timer m_timer = new Timer();
   private double m_maxSpeed = 1;
   private double m_maxExtraSpeed = 1;
@@ -115,5 +117,6 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void testPeriodic() {
+      SmartDashboard.putBoolean("photoelectric", m_ballSensor.get());
   }
 }
