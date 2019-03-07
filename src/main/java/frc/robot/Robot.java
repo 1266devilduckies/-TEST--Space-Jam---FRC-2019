@@ -47,6 +47,7 @@ public class Robot extends TimedRobot {
 
   private int turnCount = 0;
   private double angleError = 0;
+  private double stickAngle = 0;
   private double kP = 0;
   private double kI = 0;
   private double kF = 0;
@@ -62,6 +63,7 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     //CameraServer.getInstance().startAutomaticCapture();
     m_stick.setXChannel(2);
+    m_stick.setYChannel(3);
     SmartDashboard.putNumber("Maximum Drive Speed", 1);
     SmartDashboard.putNumber("Maximum Motor Speed", 1);
     SmartDashboard.putNumber("kP", 0);
@@ -173,9 +175,11 @@ public class Robot extends TimedRobot {
 
         gyro = m_gyro.getAngle() - (360*turnCount);
         
-        if (Math.abs( m_stick.getX() ) > 0.1 || Math.abs( m_stick.getY() ) > 0.1){
+        if (Math.abs( m_stick.getX() ) > 0.5 || Math.abs( m_stick.getY() ) > 0.5){
+          stickAngle = m_stick.getDirectionDegrees();
+        }
 
-          error = gyro - m_stick.getDirectionDegrees();
+        error = stickAngle - gyro;
 
           if(error > 180) {
             error-=360;
@@ -183,7 +187,6 @@ public class Robot extends TimedRobot {
             error+=360;
           }
           integral += (error*.02);
-        }
 
         if(error != 0){
           turn_power = (kP * error) + (kI*integral) + kF;
@@ -195,7 +198,8 @@ public class Robot extends TimedRobot {
           turn_power = m_maxSpeed*-1;
         }
 
-        m_robotDrive.arcadeDrive(m_stick.getY()*m_maxSpeed*-1,turn_power,false);
+        m_robotDrive.arcadeDrive(m_stick.getRawAxis(1)*m_maxSpeed*-1,turn_power,false);
+        SmartDashboard.putNumber("Stick Error", m_stick.getDirectionDegrees());
       }
 
       SmartDashboard.putNumber("Gyro Angle", gyro);
