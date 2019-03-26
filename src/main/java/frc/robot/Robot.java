@@ -42,27 +42,33 @@ import edu.wpi.cscore.UsbCamera;
 public class Robot extends TimedRobot {
   private final Talon m_leftMotor = new Talon (8);
   private final Talon m_rightMotor = new Talon (9);
-  private final Talon m_extraMotor = new Talon (7);
   private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftMotor, m_rightMotor);
-  private final Joystick m_stick = new Joystick(0);
-  private final Joystick m_stick2 = new Joystick(1);
-  private final Timer m_timer = new Timer();
   private double m_maxSpeed = 1;
-  private double m_maxExtraSpeed = 1;
-  private boolean visionToggle = true;
 
-  private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
-
-  private int turnCount = 0;
-  private double kP = 0;
+  private double kP = 1.5;
   private double kI = 0;
   private double kD = 0;
-  private double kF = 0;
+  private double kF = 0.03;
   private double integral, previous_error, stickAngle = 0;
 
-  SerialPort usbSerial = null;
+  private final Talon m_extraMotor = new Talon (7);
+  private double m_maxExtraSpeed = 1;
 
+  private final Joystick m_stick = new Joystick(0);
+  private final Joystick m_stick2 = new Joystick(1);
   private double stickyY = 0;
+
+  private final Timer m_timer = new Timer();
+
+  private final ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
+  private int turnCount = 0;
+
+  SerialPort usbSerial = null;
+  private boolean visionToggle = true;
+  private boolean seesTarget = false;
+  private double targetBlind_count = 0;
+  private double targetBlind_threshold = 0.3;
+  private int targetSelect = 0;
 
   /**
    * This function is run when the robot is first started up and should be
@@ -149,8 +155,11 @@ public class Robot extends TimedRobot {
 
     double gyro = 0;
     double error = 0;
-    double turn_power = 0;
+    double turnPower = 0;
+    String selectionOutput = "[[LEFT]]";
     JsonArray jevoisArray = null;
+    double multiplePair_count = 0;
+    double multiplePair_threshold = 0.3;
 
     kP = SmartDashboard.getNumber("drive_kP", 0);
     kI = SmartDashboard.getNumber("drive_kI", 0);
@@ -161,9 +170,11 @@ public class Robot extends TimedRobot {
       m_gyro.reset();
     }
 
-    if(m_stick.getRawButtonPressed(6)==true){
+    /*if(m_stick.getRawButtonPressed(6)==true){
       visionToggle = !visionToggle;
-    }
+    }*/
+
+    visionToggle = m_stick.getRawButton(6);
 
     //SmartDashboard.putString("stri", usbSerial.readString());
 
@@ -172,24 +183,65 @@ public class Robot extends TimedRobot {
 
     if(usbSerial != null){
       if(usbSerial.getBytesReceived() > 0){
+       
         jevoisArray = Jsoner.deserialize(usbSerial.readString(), new JsonArray());
-        SmartDashboard.putBoolean("Sees Target?", !jevoisArray.isEmpty());
-      }else{
-        SmartDashboard.putBoolean("Sees Target?", false);
+
+        if(!jevoisArray.isEmpty()){
+
+          targetBlind_count = 0;
+
+          if(jevoisArray.size()==6){
+            multiplePair_count += 0.02;
+          }else{
+            multiplePair_count = 0;
+          }
+
+          if(multiplePair_count > multiplePair_threshold){
+
+            if(m_stick.getRawButtonPressed(5)){
+              if(targetSelect == 0){
+                targetSelect = 3;
+              }else{
+                targetSelect = 0;
+              }
+            }
+
+            if(targetSelect==0){
+              selectionOutput = "[[ LEFT ]]       RIGHT   ";
+            }else if(targetSelect==3){
+              selectionOutput = "   LEFT       [[ RIGHT ]]";
+            }
+
+          }else{
+            targetSelect = 0;
+              selectionOutput = "        [[ SET ]]        ";
+          }
+
+          SmartDashboard.putNumber("centerY", jevoisArray.getDouble(targetSelect+1));
+
+        }else{
+          targetBlind_count += 0.02;
+        }
       }
     }
 
+    seesTarget = targetBlind_count < targetBlind_threshold ? true : false;
+
+    targetSelect = seesTarget ? targetSelect : 0;
+
     if(visionToggle == true && jevoisArray != null){
       if(jevoisArray.isEmpty()==false){
+
         //order in array goes centerX, centerY, distance between both
-        double centerX = jevoisArray.getDouble(0);
-        centerY = jevoisArray.getDouble(1);
-        double between = jevoisArray.getDouble(2);
+        double centerX = jevoisArray.getDouble(targetSelect);
+        centerY = jevoisArray.getDouble(targetSelect+1);
+        double between = jevoisArray.getDouble(targetSelect+2);
         double width = (centerX*11.5)/between;
-        if(/*m_photoElec.get() ==*/ true){
-          dist = (0.008*Math.pow(centerY, 2))+(0.1828*centerY)+10.225;
+        if(/*m_photoElec.get() ==*/ false){
+          dist = (0.0001*Math.pow(centerY, 2))-(0.087*centerY)+34.29;
         }else{
-          dist = (0.008*Math.pow(centerY, 2))+(0.1828*centerY)+10.225;
+          //dist = (0.008*Math.pow(centerY, 2))+(0.1828*centerY)+10.225;
+          dist = (11.5*320)/(2*between*(Math.tan(32.5)));
         }
         error = Math.atan(width/dist);
         //gyro = m_gyro.getAngle();
@@ -224,27 +276,34 @@ public class Robot extends TimedRobot {
     double derivative = (error-previous_error)/.02;
 
     if(error != 0){
-      turn_power = (kP * error) + (kI*integral) + (kD*derivative) + kF;
+      turnPower = (kP * error) + (kI*integral) + (kD*derivative) + kF;
     }
+
+    turnPower += turnPower > 0 ? kF : -kF; 
 
     previous_error = error;
 
-    if(turn_power > m_maxSpeed){
-      turn_power = m_maxSpeed;
-    }else if (turn_power < m_maxSpeed*-1){
-      turn_power = m_maxSpeed*-1;
-    }
+    turnPower = turnPower > m_maxSpeed ? m_maxSpeed : turnPower < m_maxSpeed*-1 ? m_maxSpeed*-1 : turnPower;
 
     //m_robotDrive.arcadeDrive(m_stick.getRawAxis(1)*m_maxSpeed*-1, m_stick2.getRawAxis(0)*m_maxSpeed);
     //m_robotDrive.arcadeDrive(m_stick.getRawAxis(1)*m_maxSpeed*-1, m_stick.getRawAxis(2)*m_maxSpeed);
     //stickyY = Math.abs(m_stick2.getRawAxis(1)) > 0.4 ? m_stick2.getRawAxis(1) : 0;
-    //m_robotDrive.arcadeDrive(stickyY,turn_power,false);
-    m_robotDrive.arcadeDrive(0, 0);
+    //m_robotDrive.arcadeDrive(stickyY,turnPower,false);
+
+    if(visionToggle && seesTarget){
+      m_robotDrive.arcadeDrive(m_stick.getRawAxis(1)*m_maxSpeed*-1, turnPower);
+    }else{
+      m_robotDrive.curvatureDrive(m_stick.getRawAxis(1)*m_maxSpeed*-1, m_stick.getRawAxis(2)*m_maxSpeed, m_stick.getRawButton(8));
+    }
 
     SmartDashboard.putNumber("Gyro Angle", gyro);
     SmartDashboard.putBoolean("Gyro Connected", m_gyro.isConnected());
     SmartDashboard.putNumber("Error", error);
-    SmartDashboard.putNumber("Turn Power", turn_power);
+    SmartDashboard.putNumber("dist", dist);
+    SmartDashboard.putNumber("Turn Power", turnPower);
+    SmartDashboard.putBoolean("Vision Toggled On?", visionToggle);
+    SmartDashboard.putBoolean("Sees Target?",seesTarget);
+    SmartDashboard.putBoolean("Jevois Connected?", usbSerial != null);
   
     if(SmartDashboard.getNumber("Maximum Drive Speed", 1)<=1 && SmartDashboard.getNumber("motorMaxSpeed", 1)>=0){
       m_maxSpeed = SmartDashboard.getNumber("Maximum Drive Speed", 1);
