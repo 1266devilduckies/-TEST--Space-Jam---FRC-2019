@@ -239,9 +239,13 @@ public class Robot extends TimedRobot {
         double width = (centerX*11.5)/between;
         if(/*m_photoElec.get() ==*/ false){
           dist = (0.0001*Math.pow(centerY, 2))-(0.087*centerY)+34.29;
-        }else{
+        }else if(true){
           //dist = (0.008*Math.pow(centerY, 2))+(0.1828*centerY)+10.225;
-          dist = (11.5*320)/(2*between*(Math.tan(32.5)));
+          //targetIN*DegInPix / 2*(targetPixel)*tan(half of cameraFOV)
+          dist = (11.5*0.2031)/(2*(centerX*160+160)*(Math.tan(Math.toRadians(32.5))));
+        }else{
+          double radians = Math.toRadians(between*0.2031);
+          dist = ((11.5)/Math.tan(radians));
         }
         error = Math.atan(width/dist);
         //gyro = m_gyro.getAngle();
